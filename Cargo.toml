@@ -1,0 +1,15 @@
+[package]
+name = "reg-map"
+version = "0.1.0"
+authors = ["Riccardo Borgani <44963821+rikyborg@users.noreply.github.com>"]
+edition = "2021"
+description = "Derive volatile accesses to a register map and memory-mapped IO"
+documentation = "https://docs.rs/reg-map"
+readme = "README.md"
+repository = "https://github.com/rikyborg/reg-map"
+license = "MIT OR Apache-2.0"
+keywords = ["volatile", "register", "no_std", "derive", "embedded", "memory-access", "memory-mapped"]
+categories = ["no-std", "no-std::no-alloc", "embedded"]
+
+[dependencies]
+reg-map-derive = { version = "=0.1.0", path = "./reg-map-derive" }
