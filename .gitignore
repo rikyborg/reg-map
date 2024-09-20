@@ -1,2 +1,3 @@
 /target
+/reg-map-derive/target
 Cargo.lock

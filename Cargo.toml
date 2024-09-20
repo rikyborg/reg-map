@@ -8,7 +8,7 @@ documentation = "https://docs.rs/reg-map"
 readme = "README.md"
 repository = "https://github.com/rikyborg/reg-map"
 license = "MIT OR Apache-2.0"
-keywords = ["volatile", "register", "no_std", "derive", "embedded", "memory-access", "memory-mapped"]
+keywords = ["volatile", "register", "no_std", "embedded", "memory-mapped"]
 categories = ["no-std", "no-std::no-alloc", "embedded"]
 
 [dependencies]
