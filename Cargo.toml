@@ -1,6 +1,6 @@
 [package]
 name = "reg-map"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Riccardo Borgani <44963821+rikyborg@users.noreply.github.com>"]
 edition = "2021"
 description = "Derive volatile accesses to a register map and memory-mapped IO"
@@ -12,4 +12,4 @@ keywords = ["volatile", "register", "no_std", "embedded", "memory-mapped"]
 categories = ["no-std", "no-std::no-alloc", "embedded"]
 
 [dependencies]
-reg-map-derive = { version = "=0.1.0", path = "./reg-map-derive" }
+reg-map-derive = { version = "=0.1.1", path = "./reg-map-derive" }

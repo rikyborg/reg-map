@@ -294,6 +294,7 @@ fn leak() {
 
     let regs = unsafe {
         let raw = ptr.as_ptr();
+        #[allow(clippy::drop_non_drop)]
         drop(ptr);
         Box::from_raw(raw)
     };

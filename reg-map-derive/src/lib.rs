@@ -1,25 +1,32 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{Data, DataStruct, DeriveInput, Fields, Ident, Result, Type, TypeArray};
+use syn::{Data, DataStruct, DeriveInput, Fields, Ident, Result, Type, TypeArray, Visibility};
+
+macro_rules! bail {
+    ($msg:expr) => {
+        return ::core::result::Result::Err(::syn::Error::new(
+            ::proc_macro2::Span::call_site(),
+            $msg,
+        ))
+    };
+    ($span:expr, $msg:expr) => {
+        return ::core::result::Result::Err(::syn::Error::new_spanned($span, $msg))
+    };
+}
 
 #[proc_macro_derive(RegMap, attributes(reg))]
 pub fn reg_map_derive(input: TokenStream) -> TokenStream {
-    // Construct a representation of Rust code as a syntax tree that we can manipulate
-    let ast = syn::parse(input).unwrap();
+    let input = syn::parse_macro_input!(input);
 
     // Build the trait implementation
-    impl_reg(&ast).unwrap_or_else(|err| err.into_compile_error().into())
+    impl_reg(&input).unwrap_or_else(|err| err.into_compile_error().into())
 }
 
 fn impl_reg(ast: &DeriveInput) -> Result<TokenStream> {
     let name = &ast.ident;
     let vis = &ast.vis;
-    let ptr_vis = match vis {
-        syn::Visibility::Inherited => quote!(pub(super)),
-        syn::Visibility::Public(_) => quote!(pub),
-        syn::Visibility::Restricted(_) => todo!(),
-    };
+    let ptr_vis = parse_visibility(vis)?;
 
     // check if using a compatible repr
     check_repr(ast)?;
@@ -33,13 +40,12 @@ fn impl_reg(ast: &DeriveInput) -> Result<TokenStream> {
         let ptr_name = Ident::new(&format!("{}Ptr", name), Span::call_site());
         let mod_name = Ident::new(&format!("_mod_{}", name), Span::call_site());
         let mut all_methods = quote!();
-        match fields {
-            Fields::Named(named) => {
-                for field in named.named.iter() {
-                    all_methods.extend(parse_field(field));
-                }
+        if let Fields::Named(named) = fields {
+            for field in named.named.iter() {
+                all_methods.extend(parse_field(field)?);
             }
-            _ => unreachable!("structs have only named fields"),
+        } else {
+            bail!(ast, "RegMap derive supports only structs with named fields");
         }
         let doc_msg_top = format!("A pointer to the register map `{name}`.");
         let doc_msg_from_nonnull = format!(
@@ -127,8 +133,34 @@ fn impl_reg(ast: &DeriveInput) -> Result<TokenStream> {
         );
         Ok(all.into())
     } else {
-        unimplemented!("only works on structs")
+        bail!(ast, "RegMap derive supports only structs")
     }
+}
+
+fn parse_visibility(vis: &Visibility) -> Result<proc_macro2::TokenStream> {
+    Ok(match vis {
+        Visibility::Inherited => quote!(pub(super)),
+        Visibility::Public(_) => quote!(pub),
+        Visibility::Restricted(vis_restricted) => {
+            if vis_restricted.in_token.is_some() {
+                bail!(
+                    vis,
+                    "RegMap derive does not support `pub(in ...)` visibilities"
+                );
+            } else {
+                let path = &vis_restricted.path;
+                if path.is_ident("crate") {
+                    quote!(pub(crate))
+                } else if path.is_ident("super") {
+                    quote!(pub(in super::super))
+                } else if path.is_ident("self") {
+                    quote!(pub(super))
+                } else {
+                    bail!(vis, "RegMap derive found an unexpected visibility");
+                }
+            }
+        }
+    })
 }
 
 fn is_integer(ident: &Ident) -> bool {
@@ -222,19 +254,18 @@ fn check_repr(input: &DeriveInput) -> Result<()> {
     if repr_c {
         Ok(())
     } else {
-        Err(syn::Error::new(
-            Span::call_site(),
-            "RegMap derive requires #[repr(C)]",
-        ))
+        bail!("RegMap derive requires #[repr(C)]")
     }
 }
 
-fn parse_field(field: &syn::Field) -> proc_macro2::TokenStream {
+fn parse_field(field: &syn::Field) -> Result<proc_macro2::TokenStream> {
     let name = field.ident.as_ref().expect("struct fields are named");
     let ty = &field.ty;
-    let ret_sig = parse_ret_type(field, ty);
-    match ty {
+    let ret_sig = parse_ret_type(field, ty)?;
+    let doc = parse_docs(field);
+    Ok(match ty {
         Type::Array(TypeArray { .. }) => quote!(
+            #doc
             #[inline]
             pub fn #name (&self) -> #ret_sig {
                 unsafe { ::reg_map::RegArray::__MACRO_ONLY__from_ptr(::core::ptr::addr_of_mut!((*self.as_ptr()).#name)) }
@@ -244,6 +275,7 @@ fn parse_field(field: &syn::Field) -> proc_macro2::TokenStream {
             let ident = &type_path.path.segments[0].ident;
             if is_integer(ident) {
                 quote!(
+                    #doc
                     #[inline]
                     pub fn #name (&self) -> #ret_sig {
                         unsafe { ::reg_map::Reg::__MACRO_ONLY__from_ptr(::core::ptr::addr_of_mut!((*self.as_ptr()).#name)) }
@@ -252,6 +284,7 @@ fn parse_field(field: &syn::Field) -> proc_macro2::TokenStream {
             } else {
                 let ptr_ty = Ident::new(&format!("{}Ptr", ident), Span::call_site());
                 quote!(
+                    #doc
                     #[inline]
                     pub fn #name (&self) -> #ret_sig {
                         unsafe { #ptr_ty::from_ptr(::core::ptr::addr_of_mut!((*self.as_ptr()).#name)) }
@@ -259,16 +292,19 @@ fn parse_field(field: &syn::Field) -> proc_macro2::TokenStream {
                 )
             }
         }
-        _ => unimplemented!("only support TypeArray and TypePath"),
-    }
+        _ => bail!(
+            field,
+            "RegMap derive supports only field of type Path or Array"
+        ),
+    })
 }
 
-fn parse_ret_type(field: &syn::Field, ty: &Type) -> proc_macro2::TokenStream {
+fn parse_ret_type(field: &syn::Field, ty: &Type) -> Result<proc_macro2::TokenStream> {
     match ty {
         Type::Array(TypeArray { elem, len, .. }) => {
             // recursive!
-            let inner_sig = parse_ret_type(field, elem);
-            quote!(::reg_map::RegArray<'a, #inner_sig, {#len}>)
+            let inner_sig = parse_ret_type(field, elem)?;
+            Ok(quote!(::reg_map::RegArray<'a, #inner_sig, {#len}>))
         }
         Type::Path(ref type_path) => {
             let ident = &type_path.path.segments[0].ident;
@@ -276,17 +312,32 @@ fn parse_ret_type(field: &syn::Field, ty: &Type) -> proc_macro2::TokenStream {
                 let mut access = RegAccess::default();
                 for attr in &field.attrs {
                     if attr.path().is_ident("reg") {
-                        access = attr
-                            .parse_args()
-                            .expect("unable to parse access permission");
+                        access = attr.parse_args()?;
                     }
                 }
-                quote!(::reg_map::Reg<'a, #ident, #access>)
+                Ok(quote!(::reg_map::Reg<'a, #ident, #access>))
             } else {
                 let ptr_ty = Ident::new(&format!("{}Ptr", ident), Span::call_site());
-                quote!(#ptr_ty<'a>)
+                Ok(quote!(#ptr_ty<'a>))
             }
         }
-        _ => unimplemented!("only support TypeArray and TypePath"),
+        _ => bail!(
+            field,
+            "RegMap derive supports only field of type Path or Array"
+        ),
     }
+}
+fn parse_docs(field: &syn::Field) -> proc_macro2::TokenStream {
+    let mut docs = quote!();
+    for attr in &field.attrs {
+        if attr.path().is_ident("doc") {
+            let text = &attr
+                .meta
+                .require_name_value()
+                .expect("doc attributes are name-value")
+                .value;
+            docs.extend(quote!(#[doc = #text]));
+        }
+    }
+    docs
 }
