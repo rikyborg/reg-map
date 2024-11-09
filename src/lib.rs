@@ -66,7 +66,7 @@
 //! ```
 //!
 //! Read/write permissions are checked at compile time. The following code does not compile:
-//! ```compile_fail
+//! ```compile_fail,E0277
 //! # mod yoo {
 //! # use reg_map::RegMap;
 //! # #[repr(C)]
