@@ -13,3 +13,7 @@ categories = ["no-std", "no-std::no-alloc", "embedded"]
 
 [dependencies]
 reg-map-derive = { version = "=0.1.1", path = "./reg-map-derive" }
+
+[features]
+std = []
+debug-trace = ["std"]

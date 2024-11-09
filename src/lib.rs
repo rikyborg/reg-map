@@ -13,6 +13,7 @@
 //! - [Access permissions](#access-permissions)
 //! - [Type layout and representation](#type-layout-and-representation)
 //! - [Thread safety](#thread-safety)
+//! - [Crate features](#crate-features)
 //! - [Principle of operation](#principle-of-operation)
 //!   - [Sample generated code](#sample-generated-code)
 //! - [Comparison with other crates](#comparison-with-other-crates)
@@ -333,6 +334,33 @@
 //!
 //! If something goes wrong, that's on you! See also
 //! [URLO: Volatile + relaxed atomic load/store](https://users.rust-lang.org/t/volatile-relaxed-atomic-load-store/92792).
+//!
+//! # Crate features
+//!
+//! By default, no features are enabled. These features exist:
+//!
+//! - **std** -
+//!   When enabled, this will cause `reg-map` to use the standard library. Currently, this feature
+//!   is only used as a dependency of other features.
+//!
+//! - **debug-trace** -
+//!   When enabled, all register reads and writes print a debug trace to standard error. Depends on
+//!   feature `std`. For example, the code
+//!   ```ignore
+//!   ptr.field1().write(0);
+//!   ptr.field1().read();
+//!   ptr.field2().write(0xa5a5);
+//!   ptr.field2().read();
+//!   ```
+//!   might print something like
+//!   ```text
+//!   REG-MAP WRITE 0x7ffc30c85c70 0
+//!   REG-MAP READ  0x7ffc30c85c70 0
+//!   REG-MAP WRITE 0x7ffc30c85c78 42405
+//!   REG-MAP READ  0x7ffc30c85c78 42405
+//!   ```
+//!   Note that this feature only works on targets that support `std`, and that printing to
+//!   standard error for every register access might heavily impact performance.
 //!
 //! # Principle of operation
 //!
