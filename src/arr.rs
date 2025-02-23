@@ -37,7 +37,7 @@ impl<'a, P: ArrayElem<'a>, const N: usize> RegArray<'a, P, N> {
     #[allow(non_snake_case)]
     #[inline]
     pub const unsafe fn __MACRO_ONLY__from_ptr(ptr: *mut [P::Target; N]) -> Self {
-        Self::from_nonnull(NonNull::new_unchecked(ptr))
+        unsafe { Self::from_nonnull(NonNull::new_unchecked(ptr)) }
     }
     #[inline]
     const unsafe fn from_nonnull(ptr: NonNull<[P::Target; N]>) -> Self {
@@ -122,7 +122,7 @@ impl<'a, T: Integer, A: Access> ArrayElem<'a> for Reg<'a, T, A> {
     type Target = T;
 
     unsafe fn from_nonnull(ptr: NonNull<Self::Target>) -> Self {
-        Reg::from_nonnull(ptr)
+        unsafe { Reg::from_nonnull(ptr) }
     }
 }
 
@@ -131,7 +131,7 @@ impl<'a, T: RegMapPtr<'a>> ArrayElem<'a> for T {
     type Target = T::RegMap;
 
     unsafe fn from_nonnull(ptr: NonNull<Self::Target>) -> Self {
-        T::from_nonnull(ptr)
+        unsafe { T::from_nonnull(ptr) }
     }
 }
 
@@ -140,7 +140,7 @@ impl<'a, T: ArrayElem<'a>, const N: usize> ArrayElem<'a> for RegArray<'a, T, N> 
     type Target = [T::Target; N];
 
     unsafe fn from_nonnull(ptr: NonNull<Self::Target>) -> Self {
-        RegArray::from_nonnull(ptr)
+        unsafe { RegArray::from_nonnull(ptr) }
     }
 }
 
@@ -151,7 +151,7 @@ mod private {
     use crate::reg::{Reg, RegMapPtr};
 
     pub trait Sealed {}
-    impl<'a, T: Integer, A: Access> Sealed for Reg<'a, T, A> {}
+    impl<T: Integer, A: Access> Sealed for Reg<'_, T, A> {}
     impl<'a, T: RegMapPtr<'a>> Sealed for T {}
     impl<'a, T: ArrayElem<'a>, const N: usize> Sealed for RegArray<'a, T, N> {}
 }

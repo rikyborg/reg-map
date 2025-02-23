@@ -5,9 +5,9 @@ use crate::access::{self, Access};
 use crate::integers::Integer;
 
 #[cfg(doc)]
-use crate::access::{ReadOnly, ReadWrite, WriteOnly};
-#[cfg(doc)]
 use crate::RegMap;
+#[cfg(doc)]
+use crate::access::{ReadOnly, ReadWrite, WriteOnly};
 
 /// A pointer to a register with volatile reads and writes.
 ///
@@ -24,7 +24,7 @@ pub struct Reg<'a, T, A> {
     _ref: PhantomData<&'a T>,
     _acs: PhantomData<A>,
 }
-impl<'a, T: Integer, A: Access> Reg<'a, T, A> {
+impl<T: Integer, A: Access> Reg<'_, T, A> {
     /// Creates a new `Reg`.
     ///
     /// ⚠️ This function is called by the field-access methods defined by the derive macro
@@ -40,7 +40,7 @@ impl<'a, T: Integer, A: Access> Reg<'a, T, A> {
     #[allow(non_snake_case)]
     #[inline]
     pub const unsafe fn __MACRO_ONLY__from_ptr(ptr: *mut T) -> Self {
-        Self::from_nonnull(NonNull::new_unchecked(ptr))
+        unsafe { Self::from_nonnull(NonNull::new_unchecked(ptr)) }
     }
     #[inline]
     pub(crate) const unsafe fn from_nonnull(ptr: NonNull<T>) -> Self {

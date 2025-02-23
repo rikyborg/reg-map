@@ -2,7 +2,7 @@
 name = "reg-map"
 version = "0.1.1"
 authors = ["Riccardo Borgani <44963821+rikyborg@users.noreply.github.com>"]
-edition = "2021"
+edition = "2024"
 description = "Derive volatile accesses to a register map and memory-mapped IO"
 documentation = "https://docs.rs/reg-map"
 readme = "README.md"

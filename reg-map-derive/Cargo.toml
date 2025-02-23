@@ -2,7 +2,7 @@
 name = "reg-map-derive"
 version = "0.1.1"
 authors = ["Riccardo Borgani <44963821+rikyborg@users.noreply.github.com>"]
-edition = "2021"
+edition = "2024"
 description = "Implementation detail (proc-macro) of the `reg-map` crate"
 documentation = "https://docs.rs/reg-map"
 readme = false
