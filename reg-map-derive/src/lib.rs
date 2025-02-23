@@ -271,7 +271,7 @@ fn parse_field(field: &syn::Field) -> Result<proc_macro2::TokenStream> {
                 unsafe { ::reg_map::RegArray::__MACRO_ONLY__from_ptr(::core::ptr::addr_of_mut!((*self.as_ptr()).#name)) }
             }
         ),
-        Type::Path(ref type_path) => {
+        Type::Path(type_path) => {
             let ident = &type_path.path.segments[0].ident;
             if is_integer(ident) {
                 quote!(
@@ -306,7 +306,7 @@ fn parse_ret_type(field: &syn::Field, ty: &Type) -> Result<proc_macro2::TokenStr
             let inner_sig = parse_ret_type(field, elem)?;
             Ok(quote!(::reg_map::RegArray<'a, #inner_sig, {#len}>))
         }
-        Type::Path(ref type_path) => {
+        Type::Path(type_path) => {
             let ident = &type_path.path.segments[0].ident;
             if is_integer(ident) {
                 let mut access = RegAccess::default();
