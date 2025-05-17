@@ -147,13 +147,7 @@ impl<'a, P: ArrayElem<'a>> ExactSizeIterator for RegArrayIter<'a, P> {
         // - inside the allocation
         // - `start <= end`
 
-        // this is what core/slice/iter does, but it's unstable
-        // https://github.com/rust-lang/rust/issues/95892
-        // unsafe { self.end.sub_ptr(self.start) }
-
-        // this is what the docs suggest as equivalent, but the codegen is less optimal
-        // https://doc.rust-lang.org/core/primitive.pointer.html#method.sub_ptr
-        unsafe { usize::try_from(self.end.offset_from(self.start)).unwrap_unchecked() }
+        unsafe { self.end.offset_from_unsigned(self.start) }
     }
 }
 
