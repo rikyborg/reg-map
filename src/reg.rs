@@ -1,6 +1,9 @@
 use core::marker::PhantomData;
 use core::ptr::NonNull;
 
+#[cfg(feature = "std")]
+extern crate std;
+
 use crate::access::{self, Access};
 use crate::integers::Integer;
 
@@ -61,7 +64,12 @@ impl<T: Integer, A: Access> Reg<'_, T, A> {
     where
         A: access::Readable,
     {
-        unsafe { self.ptr.read_volatile() }
+        let val = unsafe { self.ptr.read_volatile() };
+
+        #[cfg(feature = "debug-trace")]
+        std::eprintln!("REG-MAP READ  {:p} {:?}", self.ptr, val);
+
+        val
     }
     /// Perform a volatile write.
     #[inline]
@@ -69,6 +77,8 @@ impl<T: Integer, A: Access> Reg<'_, T, A> {
     where
         A: access::Writable,
     {
+        #[cfg(feature = "debug-trace")]
+        std::eprintln!("REG-MAP WRITE {:p} {:?}", self.ptr, val);
         unsafe { self.ptr.write_volatile(val) }
     }
 }
